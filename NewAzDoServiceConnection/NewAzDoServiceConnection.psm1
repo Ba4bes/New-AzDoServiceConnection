@@ -101,8 +101,12 @@ Function New-AzDoServiceConnection {
         Authorization = ("Basic {0}" -f $base64AuthInfo)
     }
     Remove-Variable AzDoToken
-
-    $AzSubscription = (Get-AzSubscription -SubscriptionName $AzSubscriptionName)
+    try {
+        $AzSubscription = Get-AzSubscription -SubscriptionName $AzSubscriptionName -ErrorAction Stop
+    }
+    Catch {
+        Throw "Could not find subscription $AzSubscriptionName. Please verify it exists"
+    }
     $AzSubscriptionID = $AzSubscription.Id
     $TenantId = $AzSubscription.TenantId
     if ($AzResourceGroupScope) {
@@ -110,7 +114,7 @@ Function New-AzDoServiceConnection {
         $Null = Set-AzContext $AzSubscriptionID
         # Check if resourcegroup exists before setting it as the scope
         Try {
-            $null = Get-AzResourceGroup -Name $AzResourceGroupScope
+            $null = Get-AzResourceGroup -Name $AzResourceGroupScope -ErrorAction Stop
             Write-Verbose "Resourcegroup exists"
         }
         Catch {
@@ -156,34 +160,34 @@ Function New-AzDoServiceConnection {
     }
     # Create body for the API call
     $Body = @{
-        data = @{
+        data                             = @{
             subscriptionId   = $AzSubscriptionID
             subscriptionName = $AzSubscriptionName
             environment      = "AzureCloud"
             scopeLevel       = "Subscription"
             creationMode     = "Manual"
         }
-        name = ($AzSubscriptionName -replace " ")
-        type = "AzureRM"
-        url  = "https://management.azure.com/"
-        authorization = @{
+        name                             = ($AzSubscriptionName -replace " ")
+        type                             = "AzureRM"
+        url                              = "https://management.azure.com/"
+        authorization                    = @{
             parameters = @{
                 tenantid            = $TenantId
                 serviceprincipalid  = $ServicePrincipal.Id
                 authenticationType  = "spnKey"
                 serviceprincipalkey = ($ServicePrincipal.Secret | ConvertFrom-SecureString -AsPlainText)
             }
-            scheme = "ServicePrincipal"
+            scheme     = "ServicePrincipal"
         }
-        isShared = $false
-        isReady  = $true
+        isShared                         = $false
+        isReady                          = $true
         serviceEndpointProjectReferences = @(
             @{
                 projectReference = @{
                     id   = $AzDoProjectID
                     name = $AzDoProjectName
                 }
-                name = $AzDoConnectionName
+                name             = $AzDoConnectionName
             }
         )
     }
