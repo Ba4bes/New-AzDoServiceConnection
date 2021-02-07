@@ -68,7 +68,7 @@ Function New-AzDoServiceConnection {
         [parameter(Mandatory = $false)]
         [string]$AzResourceGroupScope,
 
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $false)]
         [ValidateScript( { Get-AzRoleAssignment -RoleDefinitionName $_ })]
         [string]$AzRole = "Contributor",
 
@@ -84,7 +84,7 @@ Function New-AzDoServiceConnection {
         [ValidateNotNullorEmpty()]
         [string]$AzDoConnectionName,
 
-        [parameter(Mandatory = $true)]
+        [parameter(Mandatory = $false)]
         [ValidateNotNullorEmpty()]
         [string]$AzDoUserName,
 
@@ -173,7 +173,7 @@ Function New-AzDoServiceConnection {
         authorization                    = @{
             parameters = @{
                 tenantid            = $TenantId
-                serviceprincipalid  = $ServicePrincipal.Id
+                serviceprincipalid  = $ServicePrincipal.ApplicationId
                 authenticationType  = "spnKey"
                 serviceprincipalkey = ($ServicePrincipal.Secret | ConvertFrom-SecureString -AsPlainText)
             }
