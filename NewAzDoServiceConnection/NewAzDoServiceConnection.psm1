@@ -149,8 +149,13 @@ Function New-AzDoServiceConnection {
         Write-Verbose "Collected Azure DevOps Projects"
     }
     Catch {
-        $ErrorMessage = $_ | ConvertFrom-Json
-        Throw "Could not collect project: $($ErrorMessage.message)"
+        if ($_ | Select-String -Pattern "Access Denied: The Personal Access Token used has expired.") {
+            Throw "Access Denied: The Azure DevOps Personal Access Token used has expired."
+        }
+        else {
+            $ErrorMessage = $_ | ConvertFrom-Json
+            Throw "Could not collect project: $($ErrorMessage.message)"
+        }
     }
     $AzDoProjectID = ($AzDoProjectNameproperties | Where-Object { $_.Name -eq $AzDoProjectName }).id
     Write-Verbose "Collected ID: $AzDoProjectID"
@@ -158,6 +163,14 @@ Function New-AzDoServiceConnection {
     if (-not $AzDoConnectionName) {
         $AzDoConnectionName = $AzSubscriptionName -replace " "
     }
+
+    if ($PSVersionTable.PSVersion.Major -gt 7) {
+        $PlainTextSecret = $ServicePrincipal.Secret | ConvertFrom-SecureString -AsPlainText
+    }
+    else {
+        $PlainTextSecret = [System.Net.NetworkCredential]::new("", $ServicePrincipal.Secret).Password
+    }
+
     # Create body for the API call
     $Body = @{
         data                             = @{
@@ -175,7 +188,7 @@ Function New-AzDoServiceConnection {
                 tenantid            = $TenantId
                 serviceprincipalid  = $ServicePrincipal.ApplicationId
                 authenticationType  = "spnKey"
-                serviceprincipalkey = ($ServicePrincipal.Secret | ConvertFrom-SecureString -AsPlainText)
+                serviceprincipalkey = $PlainTextSecret
             }
             scheme     = "ServicePrincipal"
         }
@@ -191,6 +204,7 @@ Function New-AzDoServiceConnection {
             }
         )
     }
+    Remove-Variable PlainTextSecret
     $URL = "https://dev.azure.com/$AzDoOrganizationName/$AzDoProjectName/_apis/serviceendpoint/endpoints?api-version=6.0-preview.4"
     $Parameters = @{
         Uri         = $URL
