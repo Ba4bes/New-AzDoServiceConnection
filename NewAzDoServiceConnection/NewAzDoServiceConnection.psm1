@@ -52,7 +52,7 @@ Function New-AzDoServiceConnection {
 
     Created by Barbara Forbes
     https://4bes.nl
-
+    
     #>
     #Requires -Module Az.Resources, Az.Accounts
     [cmdletbinding()]
@@ -165,7 +165,7 @@ Function New-AzDoServiceConnection {
     }
 
     if ($PSVersionTable.PSVersion.Major -gt 7) {
-        $PlainTextSecret = $ServicePrincipal.Secret | ConvertFrom-SecureString -AsPlainText
+        $PlainTextSecret = $ServicePrincipal.PasswordCredentials.SecretText
     }
     else {
         $PlainTextSecret = [System.Net.NetworkCredential]::new("", $ServicePrincipal.Secret).Password
@@ -186,7 +186,7 @@ Function New-AzDoServiceConnection {
         authorization                    = @{
             parameters = @{
                 tenantid            = $TenantId
-                serviceprincipalid  = $ServicePrincipal.ApplicationId
+                serviceprincipalid  = $ServicePrincipal.AppId
                 authenticationType  = "spnKey"
                 serviceprincipalkey = $PlainTextSecret
             }
