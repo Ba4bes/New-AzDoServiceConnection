@@ -164,12 +164,21 @@ Function New-AzDoServiceConnection {
         $AzDoConnectionName = $AzSubscriptionName -replace " "
     }
 
-    if ($PSVersionTable.PSVersion.Major -gt 7) {
+    $AZResourcesInstalled = Get-Module Az.Resources -ListAvailable | Sort-Object -Property Version -Descending | Select-Object -First 1
+    if ($AZResourcesInstalled.Version.Major -ge 5){
         $PlainTextSecret = $ServicePrincipal.PasswordCredentials.SecretText
+        $ServicePrincipalId = $ServicePrincipal.AppId
     }
     else {
-        $PlainTextSecret = [System.Net.NetworkCredential]::new("", $ServicePrincipal.Secret).Password
+        if ($PSVersionTable.PSVersion.Major -ge 7) {
+            $PlainTextSecret = $ServicePrincipal.Secret | ConvertFrom-SecureString -AsPlainText
+        }
+        else {
+            $PlainTextSecret = [System.Net.NetworkCredential]::new("", $ServicePrincipal.Secret).Password
+        }
+        $ServicePrincipalId = $ServicePrincipal.ApplicationId
     }
+
 
     # Create body for the API call
     $Body = @{
@@ -186,7 +195,7 @@ Function New-AzDoServiceConnection {
         authorization                    = @{
             parameters = @{
                 tenantid            = $TenantId
-                serviceprincipalid  = $ServicePrincipal.AppId
+                serviceprincipalid  = $ServicePrincipalId
                 authenticationType  = "spnKey"
                 serviceprincipalkey = $PlainTextSecret
             }
